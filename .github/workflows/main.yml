@@ -1,0 +1,46 @@
+name: deploy-docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag for manually running the deploy book workflow
+        required: True
+        default: ''
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+      - name: Python info
+        run: |
+          which python
+          python --version
+      - name: Show pip list
+        run: |
+          pip list
+
+      # Build the book
+      - name: Build the book
+        run: |
+          pip install jupyter-book
+          jupyter-book build .
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_build/html
