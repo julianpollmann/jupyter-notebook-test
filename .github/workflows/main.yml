@@ -10,8 +10,13 @@ on:
         required: True
         default: ''
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  deploy-docs:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,29 +24,57 @@ jobs:
 
     permissions:
       contents: write
-      pages: read
+      #pages: read
 
     steps:
       - uses: actions/checkout@v4
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: environment.yml
-      - name: Python info
-        run: |
-          which python
-          python --version
-      - name: Show pip list
-        run: |
-          pip list
+      # - name: Python info
+      #   run: |
+      #     which python
+      #     python --version
+      # - name: Show pip list
+      #   run: |
+      #     pip list
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
 
       # Build the book
       - name: Build the book
         run: |
           pip install jupyter-book
           jupyter-book build .
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_build/html
+          path: ./_build/html
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # or specific "vX.X.X" version tag for this action
+
+
+
+      # - name: Deploy
+      #   uses: peaceiris/actions-gh-pages@v4
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./_build/html
